@@ -1,0 +1,74 @@
+.TH TRILL 1 "2026-11-19" "trill 0.1.0" "User Commands"
+.SH NAME
+trill \- control the Trill daemon
+.SH SYNOPSIS
+.B trill
+[\fIOPTIONS\fR] \fICOMMAND\fR [\fIARGS...\fR]
+.SH DESCRIPTION
+.B trill
+is the command-line control tool for \fBtrilld\fR, a daemon that streams
+system audio to Android devices using Roc and PipeWire.
+.SH OPTIONS
+.TP
+.BR \-\-json
+Print machine-readable JSON output on stdout.
+.TP
+.BR \-\-socket " \fIPATH\fR"
+Override the daemon IPC socket path. Defaults to \fI$XDG_RUNTIME_DIR/trill/ctl.sock\fR.
+.TP
+.BR \-h ", " \-\-help
+Display help message and exit.
+.TP
+.BR \-v ", " \-\-version
+Display version information and exit.
+.SH COMMANDS
+.TP
+.B pair [\-\-timeout \fISECONDS\fR]
+Open a pairing window and display the 6-digit SPAKE2 pairing code.
+.TP
+.B list
+List paired devices and their connection status.
+.TP
+.B status
+Display daemon status, active sink, connected sessions, and streaming metrics.
+.TP
+.B start \fIDEVICE\fR
+Ask a connected phone to begin streaming audio.
+.TP
+.B stop [\fIDEVICE\fR]
+Stop streaming for a specific device, or stop all streams if no device is given.
+.TP
+.B unpair \fIDEVICE\fR
+Remove the pairing certificate pin and drop any active session for the device.
+.TP
+.B rename \fIDEVICE\fR \fINAME\fR
+Assign a human-readable label to a paired device.
+.TP
+.B shutdown
+Gracefully terminate the \fBtrilld\fR daemon.
+.SH EXIT CODES
+.TP
+.B 0
+Success.
+.TP
+.B 1
+Operation failed (connection error, timeout, rejected request).
+.TP
+.B 2
+Invalid arguments or options.
+.SH FILES
+.TP
+.I $XDG_CONFIG_HOME/trill/config.toml
+Server configuration file.
+.TP
+.I $XDG_CONFIG_HOME/trill/devices.json
+Known paired devices and pinned certificates.
+.TP
+.I $XDG_RUNTIME_DIR/trill/ctl.sock
+UNIX domain socket for local IPC.
+.TP
+.I $XDG_STATE_HOME/trill/trilld.log
+Daemon log file.
+.SH SEE ALSO
+.BR pipewire (1),
+.BR pw-cli (1)

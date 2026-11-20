@@ -1,0 +1,7 @@
+{
+  "id": 4,
+  "type": "stream.start",
+  "receiver": {
+    "source_port": 0
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "id": 1,
+  "type": "session.hello",
+  "proto_min": 0,
+  "app": "android"
+}

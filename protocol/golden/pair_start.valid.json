@@ -1,0 +1,9 @@
+{
+  "id": 1,
+  "type": "pair.start",
+  "proto": 1,
+  "name": "Pixel 8",
+  "method": "spake2",
+  "suite": "P256-SHA256-HKDF-HMAC",
+  "share": "BCmdL1a4kZiW1Y0Zccni1N1ZiK/NQNco/H+BfhdQWOaVGZNRBOt3cjMYVMZlm44XcOcjJPm4Y2Wq88bU+1S3DMU="
+}

@@ -1,0 +1,10 @@
+build/
+build-*/
+result
+result-*
+.direnv/
+.cache/
+compile_commands.json
+*.wav
+*.log
+tmp/

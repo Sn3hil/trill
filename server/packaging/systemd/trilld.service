@@ -1,0 +1,13 @@
+[Unit]
+Description=Trill daemon
+Documentation=man:trill(1)
+After=pipewire.service sound.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/trilld
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=default.target

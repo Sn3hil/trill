@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TrillMessages",
+  "description": "Wire protocol messages for Trill",
+  "oneOf": [
+    { "$ref": "#/$defs/PairStartRequest" },
+    { "$ref": "#/$defs/PairStartResponse" },
+    { "$ref": "#/$defs/PairConfirmRequest" },
+    { "$ref": "#/$defs/PairConfirmResponse" },
+    { "$ref": "#/$defs/SessionHelloRequest" },
+    { "$ref": "#/$defs/SessionHelloResponse" },
+    { "$ref": "#/$defs/StreamStartRequest" },
+    { "$ref": "#/$defs/StreamStartResponse" },
+    { "$ref": "#/$defs/StreamStopRequest" },
+    { "$ref": "#/$defs/StreamStopResponse" },
+    { "$ref": "#/$defs/DeviceRenameRequest" },
+    { "$ref": "#/$defs/HostStatusResponse" },
+    { "$ref": "#/$defs/StreamStateEvent" },
+    { "$ref": "#/$defs/HostShutdownEvent" },
+    { "$ref": "#/$defs/StreamRequestedEvent" },
+    { "$ref": "#/$defs/Ping" },
+    { "$ref": "#/$defs/Pong" },
+    { "$ref": "#/$defs/ErrorResponse" }
+  ],
+  "$defs": {
+    "PairStartRequest": {
+      "type": "object",
+      "required": ["id", "type", "proto", "name", "method", "suite", "share"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1 },
+        "type": { "const": "pair.start" },
+        "proto": { "type": "integer", "minimum": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "method": { "enum": ["spake2", "dev-plain"] },
+        "suite": { "type": "string" },
+        "share": { "type": "string" }
+      }
+    },
+    "PairStartResponse": {
+      "type": "object",
+      "required": ["re", "ok", "host_name", "share", "confirm"],
+      "properties": {
+        "re": { "type": "integer", "minimum": 1 },
+        "ok": { "const": true },
+        "host_name": { "type": "string" },
+        "share": { "type": "string" },
+        "confirm": { "type": "string" }
+      }
+    },
+    "PairConfirmRequest": {
+      "type": "object",
+      "required": ["id", "type", "confirm"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1 },
+        "type": { "const": "pair.confirm" },
+        "confirm": { "type": "string" }
+      }
+    },
+    "PairConfirmResponse": {
+      "type": "object",
+      "required": ["re", "ok", "host_id", "host_name"],
+      "properties": {
+        "re": { "type": "integer", "minimum": 1 },
+        "ok": { "const": true },
+        "host_id": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "host_name": { "type": "string" }
+      }
+    },
+    "SessionHelloRequest": {
+      "type": "object",
+      "required": ["id", "type", "proto_min", "proto_max", "app", "name", "roc", "wire_encodings", "fec"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1 },
+        "type": { "const": "session.hello" },
+        "proto_min": { "type": "integer", "minimum": 1 },
+        "proto_max": { "type": "integer", "minimum": 1 },
+        "app": { "type": "string" },
+        "name": { "type": "string" },
+        "roc": { "type": "string" },
+        "wire_encodings": { "type": "array", "items": { "type": "string" } },
+        "fec": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "SessionHelloResponse": {
+      "type": "object",
+      "required": ["re", "ok", "proto", "host_name", "host_version", "roc", "wire_encoding", "fec", "stream", "sink", "streaming", "caps"],
+      "properties": {
+        "re": { "type": "integer", "minimum": 1 },
+        "ok": { "const": true },
+        "proto": { "type": "integer" },
+        "host_name": { "type": "string" },
+        "host_version": { "type": "string" },
+        "roc": { "type": "string" },
+        "wire_encoding": { "type": "string" },
+        "fec": { "type": "string" },
+        "stream": {
+          "type": "object",
+          "required": ["wire_rate_hz", "channels", "packet_ms", "fec_block_ms", "min_latency_ms"],
+          "properties": {
+            "wire_rate_hz": { "type": "integer" },
+            "channels": { "type": "integer" },
+            "packet_ms": { "type": "integer" },
+            "fec_block_ms": { "type": "integer" },
+            "min_latency_ms": { "type": "integer" }
+          }
+        },
+        "sink": {
+          "type": "object",
+          "required": ["name", "available"],
+          "properties": {
+            "name": { "type": "string" },
+            "available": { "type": "boolean" }
+          }
+        },
+        "streaming": { "type": "boolean" },
+        "caps": {
+          "type": "object",
+          "required": ["multi", "host_request"],
+          "properties": {
+            "multi": { "type": "boolean" },
+            "host_request": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "StreamStartRequest": {
+      "type": "object",
+      "required": ["id", "type", "receiver", "wire_encoding", "fec", "target_latency_ms"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1 },
+        "type": { "const": "stream.start" },
+        "receiver": {
+          "type": "object",
+          "required": ["source_port", "repair_port"],
+          "properties": {
+            "source_port": { "type": "integer", "minimum": 1024, "maximum": 65535 },
+            "repair_port": { "type": "integer", "minimum": 1024, "maximum": 65535 }
+          }
+        },
+        "wire_encoding": { "type": "string" },
+        "fec": { "type": "string" },
+        "target_latency_ms": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "StreamStartResponse": {
+      "type": "object",
+      "required": ["re", "ok", "stream_id", "state"],
+      "properties": {
+        "re": { "type": "integer", "minimum": 1 },
+        "ok": { "const": true },
+        "stream_id": { "type": "integer" },
+        "state": { "type": "string" }
+      }
+    },
+    "StreamStopRequest": {
+      "type": "object",
+      "required": ["id", "type", "stream_id"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1 },
+        "type": { "const": "stream.stop" },
+        "stream_id": { "type": "integer" }
+      }
+    },
+    "StreamStopResponse": {
+      "type": "object",
+      "required": ["re", "ok", "stream_id", "state"],
+      "properties": {
+        "re": { "type": "integer", "minimum": 1 },
+        "ok": { "const": true },
+        "stream_id": { "type": "integer" },
+        "state": { "type": "string" }
+      }
+    },
+    "DeviceRenameRequest": {
+      "type": "object",
+      "required": ["id", "type", "name"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1 },
+        "type": { "const": "device.rename" },
+        "name": { "type": "string", "minLength": 1 }
+      }
+    },
+    "HostStatusResponse": {
+      "type": "object",
+      "required": ["re", "ok", "sink_available", "streaming", "other_sessions"],
+      "properties": {
+        "re": { "type": "integer", "minimum": 1 },
+        "ok": { "const": true },
+        "sink_available": { "type": "boolean" },
+        "streaming": { "type": "boolean" },
+        "other_sessions": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "StreamStateEvent": {
+      "type": "object",
+      "required": ["type", "stream_id", "state"],
+      "properties": {
+        "type": { "const": "event.stream.state" },
+        "stream_id": { "type": "integer" },
+        "state": { "type": "string" },
+        "reason": { "type": "string" }
+      }
+    },
+    "HostShutdownEvent": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "event.host.shutdown" }
+      }
+    },
+    "StreamRequestedEvent": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "event.stream.requested" }
+      }
+    },
+    "Ping": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "ping" }
+      }
+    },
+    "Pong": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "pong" }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "required": ["re", "ok", "error"],
+      "properties": {
+        "re": { "type": "integer", "minimum": 1 },
+        "ok": { "const": false },
+        "error": {
+          "type": "object",
+          "required": ["code", "message"],
+          "properties": {
+            "code": { "type": "string" },
+            "message": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

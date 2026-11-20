@@ -1,0 +1,11 @@
+{
+  "id": 4,
+  "type": "stream.start",
+  "receiver": {
+    "source_port": 41001,
+    "repair_port": 41002
+  },
+  "wire_encoding": "avp_l16_stereo_44100",
+  "fec": "rs8m",
+  "target_latency_ms": 150
+}

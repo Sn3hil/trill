@@ -1,0 +1,15 @@
+{
+  "id": 1,
+  "type": "session.hello",
+  "proto_min": 1,
+  "proto_max": 1,
+  "app": "android/0.1.0",
+  "name": "Pixel 8",
+  "roc": "0.4.0",
+  "wire_encodings": [
+    "avp_l16_stereo_44100"
+  ],
+  "fec": [
+    "rs8m"
+  ]
+}
