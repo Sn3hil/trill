@@ -13,9 +13,14 @@
     { "$ref": "#/$defs/StreamStartResponse" },
     { "$ref": "#/$defs/StreamStopRequest" },
     { "$ref": "#/$defs/StreamStopResponse" },
+    { "$ref": "#/$defs/MicStartRequest" },
+    { "$ref": "#/$defs/MicStartResponse" },
+    { "$ref": "#/$defs/MicStopRequest" },
+    { "$ref": "#/$defs/MicStopResponse" },
     { "$ref": "#/$defs/DeviceRenameRequest" },
     { "$ref": "#/$defs/HostStatusResponse" },
     { "$ref": "#/$defs/StreamStateEvent" },
+    { "$ref": "#/$defs/MicStateEvent" },
     { "$ref": "#/$defs/HostShutdownEvent" },
     { "$ref": "#/$defs/StreamRequestedEvent" },
     { "$ref": "#/$defs/Ping" },
@@ -169,6 +174,63 @@
         "ok": { "const": true },
         "stream_id": { "type": "integer" },
         "state": { "type": "string" }
+      }
+    },
+    "MicStartRequest": {
+      "type": "object",
+      "required": ["id", "type", "wire_encoding", "fec"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1 },
+        "type": { "const": "mic.start" },
+        "wire_encoding": { "type": "string" },
+        "fec": { "type": "string" }
+      }
+    },
+    "MicStartResponse": {
+      "type": "object",
+      "required": ["re", "ok", "stream_id", "receiver", "state"],
+      "properties": {
+        "re": { "type": "integer", "minimum": 1 },
+        "ok": { "const": true },
+        "stream_id": { "type": "integer" },
+        "receiver": {
+          "type": "object",
+          "required": ["source_port", "repair_port"],
+          "properties": {
+            "source_port": { "type": "integer", "minimum": 1024, "maximum": 65535 },
+            "repair_port": { "type": "integer", "minimum": 1024, "maximum": 65535 }
+          }
+        },
+        "state": { "type": "string" }
+      }
+    },
+    "MicStopRequest": {
+      "type": "object",
+      "required": ["id", "type", "stream_id"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1 },
+        "type": { "const": "mic.stop" },
+        "stream_id": { "type": "integer" }
+      }
+    },
+    "MicStopResponse": {
+      "type": "object",
+      "required": ["re", "ok", "stream_id", "state"],
+      "properties": {
+        "re": { "type": "integer", "minimum": 1 },
+        "ok": { "const": true },
+        "stream_id": { "type": "integer" },
+        "state": { "type": "string" }
+      }
+    },
+    "MicStateEvent": {
+      "type": "object",
+      "required": ["type", "stream_id", "state"],
+      "properties": {
+        "type": { "const": "event.mic.state" },
+        "stream_id": { "type": "integer" },
+        "state": { "type": "string" },
+        "reason": { "type": "string" }
       }
     },
     "DeviceRenameRequest": {

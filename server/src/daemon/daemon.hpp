@@ -25,6 +25,7 @@ class MdnsPublisher;
 class PairingManager;
 class SessionManager;
 class StreamPipeline;
+class MicPipeline;
 class ControlServer;
 class CommandHandler;
 class TlsConnection;
@@ -32,6 +33,8 @@ class TlsConnection;
 struct DaemonOptions {
     std::filesystem::path config_path;
     std::optional<std::uint16_t> control_port;
+    std::optional<std::uint16_t> mic_source_port;
+    std::optional<std::uint16_t> mic_repair_port;
     std::optional<std::string> log_level;
     bool no_default_switch{false};
     bool insecure_dev_pairing{false};
@@ -94,6 +97,7 @@ class Daemon {
     std::unique_ptr<PairingManager> pairing_;
     std::unique_ptr<SessionManager> sessions_;
     std::unique_ptr<StreamPipeline> pipeline_;
+    std::unique_ptr<MicPipeline> mic_pipeline_;
     std::unique_ptr<DefaultSinkGuard> sink_guard_;
     std::unique_ptr<MdnsPublisher> mdns_;
     std::unique_ptr<CommandHandler> commands_;

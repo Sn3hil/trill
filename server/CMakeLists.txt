@@ -117,9 +117,12 @@ add_library(ar_core STATIC
   src/session/control_session.cpp
   src/session/session_manager.cpp
   src/audio/pw_sink.cpp
+  src/audio/pw_source.cpp
   src/audio/default_sink_guard.cpp
   src/audio/roc_sender.cpp
+  src/audio/roc_receiver.cpp
   src/audio/stream_pipeline.cpp
+  src/audio/mic_pipeline.cpp
   src/cli/ipc_client.cpp
   src/ipc/ipc_server.cpp
   src/ipc/ipc_protocol.cpp

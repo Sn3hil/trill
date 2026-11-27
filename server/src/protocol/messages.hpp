@@ -134,6 +134,36 @@ struct StreamStop {
 
 [[nodiscard]] Result<StreamStop> parse_stream_stop(const nlohmann::json& body);
 
+struct MicStart {
+    std::string wire_encoding;
+    std::string fec;
+};
+
+[[nodiscard]] Result<MicStart> parse_mic_start(const nlohmann::json& body);
+
+struct MicStartResponse {
+    std::uint32_t stream_id{0};
+    std::uint16_t source_port{0};
+    std::uint16_t repair_port{0};
+    std::string state{"starting"};
+};
+
+[[nodiscard]] nlohmann::json to_json(const MicStartResponse& value);
+
+struct MicStop {
+    std::uint32_t stream_id{0};
+};
+
+[[nodiscard]] Result<MicStop> parse_mic_stop(const nlohmann::json& body);
+
+struct MicStateEvent {
+    std::uint32_t stream_id{0};
+    std::string state;
+    std::string reason;
+};
+
+[[nodiscard]] nlohmann::json to_json(const MicStateEvent& value);
+
 struct DeviceRename {
     std::string name;
 };

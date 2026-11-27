@@ -11,6 +11,8 @@ namespace ar {
 
 struct DaemonConfig {
     std::uint16_t control_port{47800};
+    std::uint16_t mic_source_port{47810};
+    std::uint16_t mic_repair_port{47811};
 };
 
 struct PairingConfig {

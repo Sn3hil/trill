@@ -46,12 +46,16 @@ class ControlSession : public std::enable_shared_from_this<ControlSession> {
     [[nodiscard]] bool streaming() const {
         return state_ == State::streaming;
     }
+    [[nodiscard]] bool mic_streaming() const {
+        return mic_streaming_;
+    }
 
     void set_device_name(std::string name) {
         device_name_ = std::move(name);
     }
     void on_stream_started(std::uint32_t stream_id);
     void on_stream_stopped(std::uint32_t stream_id, const std::string& reason);
+    void on_mic_stopped(std::uint32_t stream_id, const std::string& reason);
     void request_host_started_stream();
 
     [[nodiscard]] std::string state_name() const;
@@ -77,6 +81,8 @@ class ControlSession : public std::enable_shared_from_this<ControlSession> {
     std::string peer_ip_;
     State state_{State::connected};
     bool closed_{false};
+    bool mic_streaming_{false};
+    std::uint32_t active_mic_stream_id_{0};
     asio::steady_timer ping_timer_;
     TimePoint last_rx_;
 };

@@ -174,6 +174,63 @@ bool ControlSession::handle_request(const nlohmann::json& root, std::uint64_t id
         return true;
     }
 
+    if (type == "mic.start") {
+        if (state_ == State::connected) {
+            reply_error(id, ErrorCode::bad_request, "session not ready");
+            return true;
+        }
+        if (mic_streaming_) {
+            reply_error(id, ErrorCode::busy, "mic stream already active");
+            return true;
+        }
+        auto start = protocol::parse_mic_start(root);
+        if (!start) {
+            reply_error(id, start.error().code, start.error().message);
+            return true;
+        }
+        MicStreamParams params;
+        params.peer_ip = peer_ip_;
+        params.wire_encoding = start->wire_encoding;
+        params.fec = start->fec;
+
+        auto res = manager_.begin_mic(this, params);
+        if (!res) {
+            reply_error(id, res.error().code, res.error().message);
+            return true;
+        }
+        mic_streaming_ = true;
+        active_mic_stream_id_ = res->first;
+        protocol::MicStartResponse resp;
+        resp.stream_id = res->first;
+        resp.source_port = res->second.source_port;
+        resp.repair_port = res->second.repair_port;
+        resp.state = "starting";
+        reply_ok(id, protocol::to_json(resp));
+        send_event("event.mic.state",
+                   protocol::to_json(protocol::MicStateEvent{res->first, "running", ""}));
+        return true;
+    }
+
+    if (type == "mic.stop") {
+        auto stop = protocol::parse_mic_stop(root);
+        if (!stop) {
+            reply_error(id, stop.error().code, stop.error().message);
+            return true;
+        }
+        if (!mic_streaming_) {
+            reply_error(id, ErrorCode::bad_request, "no active mic stream");
+            return true;
+        }
+        const std::uint32_t stream_id = active_mic_stream_id_;
+        manager_.end_mic(this, "phone");
+        mic_streaming_ = false;
+        active_mic_stream_id_ = 0;
+        reply_ok(id, nlohmann::json{{"stream_id", stream_id}, {"state", "stopped"}});
+        send_event("event.mic.state",
+                   protocol::to_json(protocol::MicStateEvent{stream_id, "stopped", "phone"}));
+        return true;
+    }
+
     reply_error(id, ErrorCode::unsupported, "unsupported request type");
     return true;
 }
@@ -209,6 +266,15 @@ void ControlSession::on_stream_stopped(std::uint32_t stream_id, const std::strin
     state_ = State::ready;
     send_event("event.stream.state",
                nlohmann::json{{"stream_id", stream_id}, {"state", "stopped"}, {"reason", reason}});
+}
+
+void ControlSession::on_mic_stopped(std::uint32_t stream_id, const std::string& reason) {
+    if (closed_)
+        return;
+    mic_streaming_ = false;
+    active_mic_stream_id_ = 0;
+    send_event("event.mic.state",
+               protocol::to_json(protocol::MicStateEvent{stream_id, "stopped", reason}));
 }
 
 void ControlSession::request_host_started_stream() {
@@ -250,6 +316,11 @@ void ControlSession::close(const std::string& reason) {
         return;
     closed_ = true;
     state_ = State::closed;
+    if (mic_streaming_) {
+        mic_streaming_ = false;
+        active_mic_stream_id_ = 0;
+        manager_.end_mic(this, reason);
+    }
     ping_timer_.cancel();
     connection_->close();
     manager_.unregister(this, reason);

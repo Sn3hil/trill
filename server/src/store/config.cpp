@@ -75,6 +75,16 @@ Result<Config> Config::load(const std::filesystem::path& path) {
         return std::unexpected(r.error());
     cfg.daemon.control_port = static_cast<std::uint16_t>(std::clamp(port, 1, 65535));
 
+    int mic_src = cfg.daemon.mic_source_port;
+    if (auto r = get_int("daemon", "mic_source_port", mic_src); !r)
+        return std::unexpected(r.error());
+    cfg.daemon.mic_source_port = static_cast<std::uint16_t>(std::clamp(mic_src, 0, 65535));
+
+    int mic_rep = cfg.daemon.mic_repair_port;
+    if (auto r = get_int("daemon", "mic_repair_port", mic_rep); !r)
+        return std::unexpected(r.error());
+    cfg.daemon.mic_repair_port = static_cast<std::uint16_t>(std::clamp(mic_rep, 0, 65535));
+
     if (auto r = get_int("pairing", "window_seconds", cfg.pairing.window_seconds); !r)
         return std::unexpected(r.error());
     if (auto r = get_int("pairing", "max_attempts", cfg.pairing.max_attempts); !r)

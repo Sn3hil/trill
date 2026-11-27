@@ -99,6 +99,13 @@ void print_status(const nlohmann::json& result) {
               << " overruns=" << stream.value("ring_overrun_samples", std::uint64_t{0})
               << " underruns=" << stream.value("ring_underrun_frames", std::uint64_t{0})
               << " write_errors=" << stream.value("write_errors", std::uint64_t{0}) << '\n';
+
+    if (result.contains("mic")) {
+        const auto mic = result["mic"];
+        std::cout << "Mic:       " << (mic.value("running", false) ? "active" : "idle")
+                  << " frames=" << mic.value("frames_received", std::uint64_t{0})
+                  << " errors=" << mic.value("read_errors", std::uint64_t{0}) << '\n';
+    }
 }
 
 } // namespace ar::render

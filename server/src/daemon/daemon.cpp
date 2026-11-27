@@ -2,6 +2,7 @@
 #include "daemon/daemon.hpp"
 
 #include "audio/default_sink_guard.hpp"
+#include "audio/mic_pipeline.hpp"
 #include "audio/stream_pipeline.hpp"
 #include "common/clock.hpp"
 #include "common/log.hpp"
@@ -55,6 +56,10 @@ Result<void> Daemon::load_config() {
     config_ = *loaded;
     if (options_.control_port)
         config_.daemon.control_port = *options_.control_port;
+    if (options_.mic_source_port)
+        config_.daemon.mic_source_port = *options_.mic_source_port;
+    if (options_.mic_repair_port)
+        config_.daemon.mic_repair_port = *options_.mic_repair_port;
     if (options_.log_level)
         config_.log.level = *options_.log_level;
     if (auto r = config_.validate(); !r)
@@ -108,6 +113,11 @@ Result<void> Daemon::start() {
     settings.sink_per_session = config_.audio.sink_lifetime != "daemon";
     pipeline_ = std::make_unique<StreamPipeline>(settings);
 
+    MicPipelineSettings mic_settings;
+    mic_settings.source.name = "trill-mic";
+    mic_settings.source.description = "Trill Microphone";
+    mic_pipeline_ = std::make_unique<MicPipeline>(mic_settings);
+
     if (!settings.sink_per_session) {
         if (auto r = pipeline_->start_sink(); !r) {
             logger()->warn("cannot start the daemon-lifetime sink: {}", r.error().message);
@@ -157,6 +167,29 @@ Result<void> Daemon::start() {
         pipeline_->stop();
         restore_default_sink();
     };
+    hooks.start_mic = [this](const MicStreamParams& /*params*/,
+                             const std::string& /*device_id*/) -> Result<MicStreamPorts> {
+        if (!mic_pipeline_) {
+            return fail(ErrorCode::internal, "mic pipeline not initialized");
+        }
+        auto bound = mic_pipeline_->start(config_.daemon.mic_source_port,
+                                          config_.daemon.mic_repair_port);
+        if (!bound) {
+            logger()->warn("failed to bind configured mic ports ({}, {}); falling back to dynamic ports",
+                           config_.daemon.mic_source_port, config_.daemon.mic_repair_port);
+            bound = mic_pipeline_->start(0, 0);
+            if (!bound) {
+                return std::unexpected(bound.error());
+            }
+        }
+        return MicStreamPorts{bound->source_port, bound->repair_port};
+    };
+    hooks.stop_mic = [this](std::uint32_t /*stream_id*/, const std::string& reason) {
+        logger()->info("stopping mic stream ({})", reason);
+        if (mic_pipeline_) {
+            mic_pipeline_->stop();
+        }
+    };
     hooks.sink_available = [this] {
         if (pipeline_ != nullptr && pipeline_->sink_running())
             return true;
@@ -182,6 +215,15 @@ Result<void> Daemon::start() {
                                       {"ring_available_samples", stats.ring_available_samples},
                                       {"ring_capacity_samples", stats.ring_capacity_samples}}},
             {"mdns", nlohmann::json{{"available", mdns_ != nullptr && mdns_->available()}}}};
+        if (mic_pipeline_) {
+            const auto mic_stats = mic_pipeline_->stats();
+            out["mic"] = nlohmann::json{{"running", mic_stats.streaming},
+                                        {"source_running", mic_stats.source_running},
+                                        {"frames_received", mic_stats.frames_received},
+                                        {"read_errors", mic_stats.read_errors},
+                                        {"ring_available_samples", mic_stats.ring_available_samples},
+                                        {"ring_capacity_samples", mic_stats.ring_capacity_samples}};
+        }
         return out;
     });
     commands_->set_shutdown_request([this] { request_shutdown(); });
@@ -432,6 +474,10 @@ void Daemon::finish_shutdown() {
     if (pipeline_) {
         pipeline_->stop();
         pipeline_.reset();
+    }
+    if (mic_pipeline_) {
+        mic_pipeline_->stop();
+        mic_pipeline_.reset();
     }
     restore_default_sink();
     if (sink_guard_) {

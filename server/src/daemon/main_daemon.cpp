@@ -15,10 +15,14 @@ int main(int argc, char** argv) {
     std::string config_path;
     std::string log_level;
     int control_port = 0;
+    int mic_source_port = 0;
+    int mic_repair_port = 0;
     std::vector<std::string> debug_send;
 
     app.add_option("--config", config_path, "Path to config.toml");
     app.add_option("--control-port", control_port, "Override daemon.control_port");
+    app.add_option("--mic-source-port", mic_source_port, "Override daemon.mic_source_port");
+    app.add_option("--mic-repair-port", mic_repair_port, "Override daemon.mic_repair_port");
     app.add_option("--log-level", log_level, "Override log.level");
     app.add_flag("--no-default-switch", options.no_default_switch,
                  "Never change the PipeWire default sink");
@@ -43,6 +47,12 @@ int main(int argc, char** argv) {
             return 2;
         }
         options.control_port = static_cast<std::uint16_t>(control_port);
+    }
+    if (mic_source_port != 0) {
+        options.mic_source_port = static_cast<std::uint16_t>(mic_source_port);
+    }
+    if (mic_repair_port != 0) {
+        options.mic_repair_port = static_cast<std::uint16_t>(mic_repair_port);
     }
     if (!debug_send.empty()) {
         options.debug_send = true;

@@ -21,6 +21,17 @@ class ControlSession;
 class TlsConnection;
 struct StreamParams;
 
+struct MicStreamParams {
+    std::string peer_ip;
+    std::string wire_encoding;
+    std::string fec;
+};
+
+struct MicStreamPorts {
+    std::uint16_t source_port{0};
+    std::uint16_t repair_port{0};
+};
+
 struct SessionStatus {
     std::string device_id;
     std::string name;
@@ -40,6 +51,9 @@ class SessionManager {
     struct Hooks {
         std::function<Result<void>(const StreamParams&, const std::string& device_id)> start_stream;
         std::function<void(std::uint32_t, const std::string& reason)> stop_stream;
+        std::function<Result<MicStreamPorts>(const MicStreamParams&, const std::string& device_id)>
+            start_mic;
+        std::function<void(std::uint32_t, const std::string& reason)> stop_mic;
         std::function<bool()> sink_available;
     };
 
@@ -64,6 +78,10 @@ class SessionManager {
                                                      const StreamParams& params);
     void end_stream(ControlSession* session, const std::string& reason);
 
+    [[nodiscard]] Result<std::pair<std::uint32_t, MicStreamPorts>>
+    begin_mic(ControlSession* session, const MicStreamParams& params);
+    void end_mic(ControlSession* session, const std::string& reason);
+
     [[nodiscard]] protocol::SessionHelloResponse make_hello_response() const;
     [[nodiscard]] protocol::HostStatus host_status() const;
     [[nodiscard]] std::vector<SessionStatus> sessions() const;
@@ -73,6 +91,12 @@ class SessionManager {
     }
     [[nodiscard]] std::uint32_t active_stream_id() const {
         return active_stream_id_;
+    }
+    [[nodiscard]] bool mic_streaming() const {
+        return mic_session_ != nullptr;
+    }
+    [[nodiscard]] std::uint32_t active_mic_stream_id() const {
+        return active_mic_stream_id_;
     }
     [[nodiscard]] const std::string& host_name() const {
         return host_name_;
@@ -106,6 +130,9 @@ class SessionManager {
     std::shared_ptr<ControlSession> streaming_session_;
     std::uint32_t active_stream_id_{0};
     std::uint32_t next_stream_id_{1};
+    std::shared_ptr<ControlSession> mic_session_;
+    std::uint32_t active_mic_stream_id_{0};
+    std::uint32_t next_mic_stream_id_{1};
 };
 
 } // namespace ar

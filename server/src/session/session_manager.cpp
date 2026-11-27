@@ -36,6 +36,9 @@ SessionManager::attach(const std::shared_ptr<TlsConnection>& connection,
         if (streaming_session_ && streaming_session_.get() == old.get()) {
             end_stream(old.get(), "control_lost");
         }
+        if (mic_session_ && mic_session_.get() == old.get()) {
+            end_mic(old.get(), "control_lost");
+        }
         sessions_.erase(it);
         old->close("replaced");
         logger()->info("replaced control session for '{}'", short_id(peer_spki));
@@ -63,6 +66,9 @@ void SessionManager::unregister(ControlSession* session, const std::string& reas
 
     if (streaming_session_ && streaming_session_.get() == session) {
         end_stream(session, "control_lost");
+    }
+    if (mic_session_ && mic_session_.get() == session) {
+        end_mic(session, "control_lost");
     }
     sessions_.erase(it);
     if (event_callback_) {
@@ -126,6 +132,63 @@ void SessionManager::end_stream(ControlSession* session, const std::string& reas
                                                        {"name", name},
                                                        {"state", "stopped"},
                                                        {"reason", reason}});
+    }
+}
+
+Result<std::pair<std::uint32_t, MicStreamPorts>>
+SessionManager::begin_mic(ControlSession* session, const MicStreamParams& params) {
+    if (mic_session_) {
+        return fail(ErrorCode::busy, "another phone is already streaming microphone");
+    }
+    if (!hooks_.start_mic) {
+        return fail(ErrorCode::stream_failed, "mic pipeline is unavailable");
+    }
+    const auto it = sessions_.find(session->device_id());
+    if (it == sessions_.end() || it->second.get() != session) {
+        return fail(ErrorCode::internal, "session is not registered");
+    }
+
+    auto ports = hooks_.start_mic(params, session->device_id());
+    if (!ports) {
+        return std::unexpected(ports.error());
+    }
+
+    const std::uint32_t stream_id = next_mic_stream_id_++;
+    active_mic_stream_id_ = stream_id;
+    mic_session_ = it->second;
+    if (event_callback_) {
+        event_callback_("mic.state", nlohmann::json{{"stream_id", stream_id},
+                                                    {"device_id", session->device_id()},
+                                                    {"name", session->device_name()},
+                                                    {"state", "running"}});
+    }
+    return std::make_pair(stream_id, *ports);
+}
+
+void SessionManager::end_mic(ControlSession* session, const std::string& reason) {
+    if (!mic_session_ || (session != nullptr && mic_session_.get() != session)) {
+        return;
+    }
+    const std::uint32_t stream_id = active_mic_stream_id_;
+    const std::string device_id = mic_session_->device_id();
+    const std::string name = mic_session_->device_name();
+
+    active_mic_stream_id_ = 0;
+    mic_session_.reset();
+
+    if (hooks_.stop_mic) {
+        try {
+            hooks_.stop_mic(stream_id, reason);
+        } catch (...) {
+            logger()->error("mic stop hook threw");
+        }
+    }
+    if (event_callback_) {
+        event_callback_("mic.state", nlohmann::json{{"stream_id", stream_id},
+                                                    {"device_id", device_id},
+                                                    {"name", name},
+                                                    {"state", "stopped"},
+                                                    {"reason", reason}});
     }
 }
 
@@ -231,6 +294,12 @@ void SessionManager::stop_all(const std::string& reason) {
         const std::uint32_t stream_id = active_stream_id_;
         end_stream(session, reason);
         session->on_stream_stopped(stream_id, reason);
+    }
+    if (mic_session_) {
+        auto* session = mic_session_.get();
+        const std::uint32_t stream_id = active_mic_stream_id_;
+        end_mic(session, reason);
+        session->on_mic_stopped(stream_id, reason);
     }
 }
 

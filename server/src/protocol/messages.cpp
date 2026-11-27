@@ -314,6 +314,53 @@ Result<StreamStop> parse_stream_stop(const nlohmann::json& body) {
     return StreamStop{static_cast<std::uint32_t>(*id)};
 }
 
+Result<MicStart> parse_mic_start(const nlohmann::json& body) {
+    if (auto r = require_object(body); !r)
+        return std::unexpected(r.error());
+    MicStart out;
+    auto enc = require_string(body, "wire_encoding", 64);
+    if (!enc)
+        return std::unexpected(enc.error());
+    out.wire_encoding = *enc;
+    auto fec = require_string(body, "fec", 16);
+    if (!fec)
+        return std::unexpected(fec.error());
+    out.fec = *fec;
+    if (out.wire_encoding != kWireEncoding) {
+        return fail(ErrorCode::unsupported, "unsupported wire encoding");
+    }
+    if (out.fec != kFec) {
+        return fail(ErrorCode::unsupported, "unsupported FEC encoding");
+    }
+    return out;
+}
+
+nlohmann::json to_json(const MicStartResponse& value) {
+    return nlohmann::json{
+        {"stream_id", value.stream_id},
+        {"receiver",
+         {{"source_port", value.source_port}, {"repair_port", value.repair_port}}},
+        {"state", value.state}};
+}
+
+Result<MicStop> parse_mic_stop(const nlohmann::json& body) {
+    if (auto r = require_object(body); !r)
+        return std::unexpected(r.error());
+    auto id = require_int(body, "stream_id");
+    if (!id)
+        return std::unexpected(id.error());
+    if (*id < 0)
+        return fail(ErrorCode::bad_request, "stream_id must be positive");
+    return MicStop{static_cast<std::uint32_t>(*id)};
+}
+
+nlohmann::json to_json(const MicStateEvent& value) {
+    nlohmann::json out{{"stream_id", value.stream_id}, {"state", value.state}};
+    if (!value.reason.empty())
+        out["reason"] = value.reason;
+    return out;
+}
+
 Result<DeviceRename> parse_device_rename(const nlohmann::json& body) {
     if (auto r = require_object(body); !r)
         return std::unexpected(r.error());

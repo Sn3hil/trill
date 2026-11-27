@@ -173,5 +173,33 @@ TEST(MessagesTest, Serializers) {
     EXPECT_EQ(env_evt->type, "event.stream.state");
 }
 
+TEST(MessagesTest, MicMessages) {
+    auto req_raw = R"({"id":10,"type":"mic.start","wire_encoding":"avp_l16_stereo_44100","fec":"rs8m"})";
+    auto env = protocol::parse_envelope(req_raw);
+    ASSERT_TRUE(env.has_value());
+    auto mic_start = protocol::parse_mic_start(env->body);
+    ASSERT_TRUE(mic_start.has_value());
+    EXPECT_EQ(mic_start->wire_encoding, "avp_l16_stereo_44100");
+    EXPECT_EQ(mic_start->fec, "rs8m");
+
+    protocol::MicStartResponse resp{1, 49100, 49101, "starting"};
+    auto resp_json = protocol::to_json(resp);
+    EXPECT_EQ(resp_json["stream_id"], 1);
+    EXPECT_EQ(resp_json["receiver"]["source_port"], 49100);
+    EXPECT_EQ(resp_json["receiver"]["repair_port"], 49101);
+
+    auto stop_raw = R"({"id":11,"type":"mic.stop","stream_id":1})";
+    auto env_stop = protocol::parse_envelope(stop_raw);
+    ASSERT_TRUE(env_stop.has_value());
+    auto mic_stop = protocol::parse_mic_stop(env_stop->body);
+    ASSERT_TRUE(mic_stop.has_value());
+    EXPECT_EQ(mic_stop->stream_id, 1u);
+
+    protocol::MicStateEvent evt{1, "running", ""};
+    auto evt_json = protocol::to_json(evt);
+    EXPECT_EQ(evt_json["stream_id"], 1);
+    EXPECT_EQ(evt_json["state"], "running");
+}
+
 } // namespace
 } // namespace ar
